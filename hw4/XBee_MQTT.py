@@ -1,6 +1,8 @@
 import paho.mqtt.client as paho
 import serial
 import time
+import matplotlib.pyplot as plt
+import numpy as np
 
 # XBee setting
 serdev = '/dev/ttyUSB0'
@@ -100,7 +102,7 @@ z_acc = s.read(6).decode()
 time.sleep(1)
 
 
-# send RPC to remote per second (20 in total)
+# send RPC to remote per second (21 in total)
 while i<21:
     print(i)
     s.write("/GetAccData/run\r".encode())
@@ -127,15 +129,54 @@ while i<21:
     time.sleep(1)
     i = i +1
 
+# check if the K66F tilted
+x_acc = X[0]
+y_acc = Y[0]
+z_acc = Z[0]
+tilt_arr = []
+
+for i in range(1, 21):
+    x_abs = abs(float(X[i]) - float(x_acc))
+    y_abs = abs(float(Y[i]) - float(y_acc))
+
+    if x_abs >= 0.5 or y_abs >= 0.5:
+        tilt_arr.append(1)
+    else:
+        tilt_arr.append(0)
+
+# publish to 
+
+for i in range(0, 20):
+    mesg = "X" + X[i+1]
+    mqttc.publish(topic, mesg)  
+    print(mesg)
+
+    mesg = "Y" + Y[i+1]
+    mqttc.publish(topic, mesg)  
+    print(mesg)
+
+    mesg = "Z" + Z[i+1]
+    mqttc.publish(topic, mesg)  
+    print(mesg)
+
+    mesg = "t" + str(tilt_arr[i])
+    mqttc.publish(topic, mesg)  
+    print(mesg)
 
 
-
-mesg = "Hello, world!"
-mqttc.publish(topic, mesg)  
-print(mesg)
-
-
-i = i +1
-    
     
 s.close()
+
+
+# finally, plot collected data point
+timestamp = np.arange(0, 21, 1) 
+plt.plot(timestamp, xbee_count, color = 'green')
+plt.xlabel('timestamp')
+plt.ylabel('number')
+plt.title('# collected data plot')
+plt.show()
+
+
+
+
+
